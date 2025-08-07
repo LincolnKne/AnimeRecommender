@@ -1,0 +1,5 @@
+# Ignore sensitive files
+.env
+backend/app/data/tokens.json
+**/__pycache__/
+*.py[cod]
