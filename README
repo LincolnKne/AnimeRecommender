@@ -74,7 +74,7 @@ Most anime recommendation systems:
 ---
 
 ## Installation
-git clone https://github.com/yourusername/AnimeRecommender.git
+git clone https://github.com/LincolnKne/AnimeRecommender.git
 cd AnimeRecommender
 pip install -r requirements.txt
 
