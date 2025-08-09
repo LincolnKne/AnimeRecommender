@@ -1,7 +1,7 @@
 # AnimeRecommender
 
 ## Overview
-AnimeRecommender is an intelligent anime recommendation engine that blends **tag-based filtering**, **user preference weighting**, and **semantic search** using **OpenAI** and **Sentence Transformers** embeddings.  
+**AnimeRecommender** is an intelligent anime recommendation engine that blends **tag-based filtering**, **user preference weighting**, and **semantic search** using **OpenAI** and **Sentence Transformers** embeddings.  
 Our goal is to go beyond “similar title” recommendations by deeply understanding *why* a user likes something — whether it’s the **themes**, the **tone**, or the **relationships** — and tailoring results accordingly.
 
 ---
@@ -35,7 +35,8 @@ Our goal is to go beyond “similar title” recommendations by deeply understan
 - Accepts *any combination* of:
   - Filter tags (e.g., `"dark fantasy"`, `"romance"`)
   - Liked/disliked anime IDs
-  - Natural language query (`"I liked the gritty feeling and gore from Attack on Titan but also the romance between two adult men from Heaven Official’s Blessing"`)
+  - Natural language query  
+    e.g., `"I liked the gritty feeling and gore from Attack on Titan but also the romance between two adult men from Heaven Official’s Blessing"`
 - Uses a **weighted hybrid scoring** approach:
   - **25%** Tag overlap score  
   - **25%** Liked anime similarity  
@@ -74,16 +75,22 @@ Most anime recommendation systems:
 ---
 
 ## Installation
-git clone https://github.com/LincolnKne/AnimeRecommender.git
+
+```bash
+git clone https://github.com/yourusername/AnimeRecommender.git
 cd AnimeRecommender
 pip install -r requirements.txt
+```
 
 ## Running the Data Pipeline
-//Refresh data & embeddings
+```bash
+#Refresh data & embeddings
 python backend/scripts/refresh_data_with_embeddings.py
-
+```
 ## Starting the API Server
+```bash
 uvicorn backend.app.main:app --reload
+```
 
 ## Example Request
 ```json
