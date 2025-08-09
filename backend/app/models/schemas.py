@@ -18,6 +18,8 @@ class RecommendRequest(BaseModel):
     exclude_ids: List[int] = []
     nsfw_ok: bool = False
     limit: int = 10
+    query: Optional[str] = None           # The free-text user query
+    semantic_query: Optional[str] = None  # Internal field populated by parser
 
 class RecommendReason(BaseModel):
     overlap_tags: List[str] = []

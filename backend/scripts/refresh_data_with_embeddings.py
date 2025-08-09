@@ -13,7 +13,7 @@ def run_script(script_path):
 
 def main():
     # 1. Run the data fetcher
-    run_script(BASE_DIR / "app" / "mal_data_fetcher.py")
+    run_script(BASE_DIR / "scripts" / "mal_data_fetcher.py")
 
     # 2. Run the embedding generator
     run_script(Path(__file__).resolve().parent / "embed_generator.py")

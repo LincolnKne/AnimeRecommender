@@ -16,9 +16,12 @@ def score_candidates(
     disliked: List[Dict[str, Any]],
     moods: List[str],
     nsfw_ok: bool,
-    tag_weight: float = 0.65,
-    synopsis_weight: float = 0.35
+    query_embedding=None,
+    tag_weight: float = 0.25,
+    liked_weight: float = 0.25,
+    query_weight: float = 0.40
 ) -> List[tuple[Dict[str, Any], float, list[str]]]:
+
     mood_set = {m.lower() for m in moods}
     liked_tag_pool = set().union(*[_tags(a) for a in liked]) if liked else set()
     disliked_tag_pool = set().union(*[_tags(a) for a in disliked]) if disliked else set()
@@ -46,16 +49,27 @@ def score_candidates(
         # Mood boost
         tag_score += 0.05 * len({m for m in mood_set if m in tags})
 
-        # Synopsis score
-        synopsis_score = 0.0
+        # Liked anime synopsis score
+        liked_synopsis_score = 0.0
         if avg_liked_emb is not None and anime.get("embedding"):
-            synopsis_score = _cosine_sim(avg_liked_emb, anime["embedding"])
+            liked_synopsis_score = _cosine_sim(avg_liked_emb, anime["embedding"])
+
+        # Query synopsis score
+        query_synopsis_score = 0.0
+        if query_embedding is not None and anime.get("embedding"):
+            query_synopsis_score = _cosine_sim(query_embedding, anime["embedding"])
 
         # Blend scores
-        final_score = (tag_score * tag_weight) + (synopsis_score * synopsis_weight)
+        final_score = (
+            (tag_score * tag_weight) +
+            (liked_synopsis_score * liked_weight) +
+            (query_synopsis_score * query_weight)
+        )
+
         if final_score > 0:
             out.append((anime, final_score, sorted(overlap)))
 
+    # Normalize scores
     if out:
         max_score = max(s for _, s, _ in out)
         if max_score > 0:

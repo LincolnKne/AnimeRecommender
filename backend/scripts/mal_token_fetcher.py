@@ -6,6 +6,7 @@ import webbrowser
 from urllib.parse import urlparse, parse_qs
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from dotenv import load_dotenv
+from pathlib import Path
 
 # -------------------
 # Load ENV variables
@@ -16,7 +17,12 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
 
-TOKENS_FILE = "tokens.json"
+# -------------------
+# Paths
+# -------------------
+DATA_DIR = Path(__file__).resolve().parents[1] / "app" / "data"
+DATA_DIR.mkdir(exist_ok=True)  # ensure it exists
+TOKENS_FILE = DATA_DIR / "tokens.json"
 
 # -------------------
 # Helpers

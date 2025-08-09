@@ -5,9 +5,12 @@ import time
 import re
 import requests
 from mal_token_fetcher import get_access_token
+from pathlib import Path
 
-FIELDS = "id,title,main_picture,synopsis,genres,themes,media_type,episodes,status,start_date,end_date,mean,rank,popularity,rating"
-DB_FILE = "anime_data.json"
+FIELDS = "id,title,main_picture,synopsis,genres,themes,media_type,episodes,status,start_date,end_date,mean,rank,popularity,rating,alternative_titles"
+DATA_DIR = Path(__file__).resolve().parents[1] / "app" / "data"
+DATA_DIR.mkdir(exist_ok=True)  # make sure folder exists
+DB_FILE = DATA_DIR / "anime_data.json"
 
 RANKING_URL = "https://api.myanimelist.net/v2/anime/ranking"
 SEASON_URL = "https://api.myanimelist.net/v2/anime/season/{year}/{season}"
@@ -29,17 +32,19 @@ def load_existing_data():
 
 # ---------- Backup Existing Data ----------
 def backup_existing_data():
-    if os.path.exists(DB_FILE):
-        backup_name = f"anime_data_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
-        os.rename(DB_FILE, backup_name)
+    if DB_FILE.exists():
+        backup_name = DATA_DIR / f"anime_data_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
+        DB_FILE.rename(backup_name)
         print(f"[INFO] Backup saved as {backup_name}")
+
         backups = sorted(
-            [f for f in os.listdir('.') if f.startswith("anime_data_backup_") and f.endswith(".json")],
+            [f for f in DATA_DIR.glob("anime_data_backup_*.json")],
             key=os.path.getmtime
         )
+
         if len(backups) > 3:
             for old_file in backups[:-3]:
-                os.remove(old_file)
+                old_file.unlink()
                 print(f"[INFO] Deleted old backup {old_file}")
 
 # ---------- Text Cleaning ----------
@@ -163,7 +168,7 @@ def get_episodes_count(anime_id, token, retries=3):
             time.sleep(0.5)
             return episodes
         else:
-            print(f"[WARN] Could not fetch episodes for {anime_id} ({r.status_code}) - {r.text}, attempt {attempt}")
+            print(f"[WARN] Could not fetch episodes for {anime_id} - attempt {attempt}")
             time.sleep(1.5 * attempt)
     episodes_cache[anime_id] = 0
     return 0
@@ -180,9 +185,27 @@ def build_grouped_db(new_data, existing_data, token):
         root_id = find_root_anime(anime_id, token, anime_title=anime_title)
 
         if root_id not in grouped_data:
+            # Collect alternative titles
+            all_titles = []
+            if anime.get("title"):
+                all_titles.append(anime["title"])
+
+            alts = anime.get("alternative_titles", {})
+            if isinstance(alts, dict):
+                if alts.get("en"):
+                    all_titles.append(alts["en"])
+                if alts.get("ja"):
+                    all_titles.append(alts["ja"])
+                if isinstance(alts.get("synonyms"), list):
+                    all_titles.extend(alts["synonyms"])
+
+            # Remove duplicates and blanks
+            all_titles = list({t.strip() for t in all_titles if t and t.strip()})
+
             grouped_data[root_id] = existing_data.get(root_id, {
                 "id": root_id,
                 "title": anime_title if anime_id == root_id else None,
+                "all_titles": all_titles,
                 "main_picture": anime.get("main_picture"),
                 "tags": [g["name"] for g in anime.get("genres", [])],
                 "synopsis": clean_text(anime.get("synopsis")),
@@ -225,7 +248,7 @@ if __name__ == "__main__":
     token = get_access_token()
 
     fetched = []
-    fetched.extend(fetch_ranking("bypopularity", 1500, token))
+    fetched.extend(fetch_ranking("bypopularity", 2000, token))
     fetched.extend(fetch_ranking("airing", 500, token))
 
     current_year = datetime.now().year
