@@ -86,6 +86,7 @@ python backend/scripts/refresh_data_with_embeddings.py
 uvicorn backend.app.main:app --reload
 
 ## Example Request
+```json
 {
   "liked_ids": [5114, 9253],
   "disliked_ids": [30276],
@@ -94,3 +95,4 @@ uvicorn backend.app.main:app --reload
   "nsfw_ok": false,
   "limit": 5
 }
+```
