@@ -7,10 +7,20 @@ from ..services.openai_preference_parser import parse_preferences
 from ..recommender.hybrid_recommender import score_candidates
 from sentence_transformers import SentenceTransformer
 import numpy as np
+from sentence_transformers import SentenceTransformer
+_model = None  # global cache
 
 router = APIRouter()
 _recommend_cache = {}
 CACHE_TTL = 60  # seconds
+
+def get_model():
+    global _model
+    if _model is None:
+        print("Loading SentenceTransformer model...", flush=True)
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+        print("Model loaded.", flush=True)
+    return _model
 
 @router.post("/recommend", response_model=list[ScoredAnime])
 def recommend(req: RecommendRequest):
@@ -64,7 +74,7 @@ def _generate_recommendations(req: RecommendRequest, endpoint: str):
     # ----------- Blend semantic moods into embedding similarity ------------
     query_embedding = None
     if req.semantic_query:
-        model = SentenceTransformer("all-MiniLM-L6-v2")
+        model = get_model()
         query_embedding = model.encode(req.semantic_query)
 
     scored = score_candidates(
@@ -84,7 +94,7 @@ def _generate_recommendations(req: RecommendRequest, endpoint: str):
         response.append(
             ScoredAnime(
                 anime=Anime(**{k: anime.get(k) for k in [
-                    "id", "title", "main_picture", "tags", "synopsis",
+                    "id", "title", "all_titles", "main_picture", "tags", "synopsis",
                     "rating", "is_nsfw", "total_episodes"
                 ]}),
                 score=round(float(score), 4),
