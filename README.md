@@ -38,7 +38,7 @@ Our goal is to go beyond “similar title” recommendations by deeply understan
   - Natural language query  
     e.g., `"I liked the gritty feeling and gore from Attack on Titan but also the romance between two adult men from Heaven Official’s Blessing"`
 - Uses a **weighted hybrid scoring** approach:
-  - **25%** Tag overlap score  
+  - **35%** Tag overlap score  
   - **25%** Liked anime similarity  
   - **40%** Semantic query similarity  
 - Weights are tweakable to fine-tune the recommendation style.

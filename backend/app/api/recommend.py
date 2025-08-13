@@ -84,7 +84,7 @@ def _generate_recommendations(req: RecommendRequest, endpoint: str):
         moods=req.moods,
         nsfw_ok=req.nsfw_ok,
         query_embedding=query_embedding,
-        tag_weight=0.25,
+        tag_weight=0.35,
         liked_weight=0.25,
         query_weight=0.40
     )
