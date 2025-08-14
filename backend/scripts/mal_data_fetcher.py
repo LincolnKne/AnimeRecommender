@@ -22,13 +22,33 @@ title_cache = {}
 
 # ---------- Load Existing Data ----------
 def load_existing_data():
-    if os.path.exists(DB_FILE):
+    if DB_FILE.exists():
         with open(DB_FILE, "r", encoding="utf-8") as f:
             try:
                 return {anime["id"]: anime for anime in json.load(f)}
             except json.JSONDecodeError:
+                print("[WARN] anime_data.json is corrupted — falling back to backup.")
+    else:
+        print("[WARN] anime_data.json not found — attempting to load most recent backup.")
+
+    # Look for most recent backup
+    backups = sorted(
+        DATA_DIR.glob("anime_data_backup_*.json"),
+        key=os.path.getmtime,
+        reverse=True
+    )
+    if backups:
+        latest_backup = backups[0]
+        print(f"[INFO] Loading from backup: {latest_backup.name}")
+        with open(latest_backup, "r", encoding="utf-8") as f:
+            try:
+                return {anime["id"]: anime for anime in json.load(f)}
+            except json.JSONDecodeError:
+                print("[ERROR] Backup file is also corrupted.")
                 return {}
-    return {}
+    else:
+        print("[ERROR] No backups found.")
+        return {}
 
 # ---------- Backup Existing Data ----------
 def backup_existing_data():
@@ -202,9 +222,14 @@ def build_grouped_db(new_data, existing_data, token):
             # Remove duplicates and blanks
             all_titles = list({t.strip() for t in all_titles if t and t.strip()})
 
+            # Decide initial title
+            initial_title = anime_title if anime_id == root_id else None
+            if not initial_title and all_titles:
+                initial_title = all_titles[0]  # fallback to first alternative title
+
             grouped_data[root_id] = existing_data.get(root_id, {
                 "id": root_id,
-                "title": anime_title if anime_id == root_id else None,
+                "title": initial_title,
                 "all_titles": all_titles,
                 "main_picture": anime.get("main_picture"),
                 "tags": [g["name"] for g in anime.get("genres", [])],
@@ -220,7 +245,7 @@ def build_grouped_db(new_data, existing_data, token):
             grouped_data[root_id]["children_ids"].append(anime_id)
 
         if grouped_data[root_id]["title"] is None and anime_id == root_id:
-            grouped_data[root_id]["title"] = anime_title
+            grouped_data[root_id]["title"] = anime_title or (all_titles[0] if all_titles else None)
 
         if i % 10 == 0 or i == total:
             print(f"[INFO] Processed {i}/{total} anime ({(i/total)*100:.1f}%)")

@@ -1,15 +1,20 @@
 import { X } from "lucide-react";
 
 export default function ListsPanel({
-  tags, queries, liked, disliked, itemsById,
-  onRemoveQuery, onRemoveLiked, onRemoveDisliked, onClear, onSend,
+  tags, queries, liked, disliked, watched, itemsById,
+  onRemoveQuery, onRemoveLiked, onRemoveDisliked, onRemoveWatched,
+  onClear, onSend,
 }: {
-  tags: string[]; queries: string[];
-  liked: number[]; disliked: number[];
+  tags: string[];
+  queries: string[];
+  liked: number[];
+  disliked: number[];
+  watched: number[]; // <-- added
   itemsById: Record<number, { title?: string }>;
   onRemoveQuery: (q: string) => void;
   onRemoveLiked: (id: number) => void;
   onRemoveDisliked: (id: number) => void;
+  onRemoveWatched: (id: number) => void; 
   onClear: () => void;
   onSend: () => void;
 }) {
@@ -64,6 +69,20 @@ export default function ListsPanel({
           {disliked.length ? disliked.map((id) => (
             <Chip key={id} label={itemsById[id]?.title ?? `#${id}`} tone="red" onX={() => onRemoveDisliked(id)} />
           )) : <span className="text-black/60 text-sm">No dislikes yet.</span>}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-2 font-semibold text-sm">Watched</div>
+        <div className="flex flex-wrap gap-2">
+          {watched.length ? watched.map((id) => (
+            <Chip
+              key={id}
+              label={itemsById[id]?.title ?? `#${id}`}
+              tone="blue"
+              onX={() => onRemoveWatched(id)}
+            />
+          )) : <span className="text-black/60 text-sm">No watched anime yet.</span>}
         </div>
       </section>
 

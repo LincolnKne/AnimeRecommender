@@ -1,13 +1,16 @@
 import type { SearchItem } from "@/lib/types";
+import { Eye } from "lucide-react";
 
 export default function SearchResultsPanel({
-  results, liked, disliked, onLike, onDislike, loading,
+  results, liked, disliked, watched, onLike, onDislike, onMarkWatched, loading,
 }: {
   results: SearchItem[];
   liked: number[];
   disliked: number[];
+  watched: number[];
   onLike: (id: number) => void;
   onDislike: (id: number) => void;
+  onMarkWatched: (id: number) => void;
   loading: boolean;
 }) {
   return (
@@ -73,6 +76,16 @@ export default function SearchResultsPanel({
                 >
                   <path d="M15 3H8c-.82 0-1.54.5-1.84 1.22L3.14 11.27c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zM22 3h-4v12h4V3z" />
                 </svg>
+              </button>
+              {/* Mark as Watched button */}
+              <button
+                onClick={() => onMarkWatched(a.id)}
+                className="p-2 rounded-full hover:bg-blue-100"
+                title="Mark as Watched"
+              >
+                <Eye
+                  className={`h-5 w-5 ${watched.includes(a.id) ? "text-blue-700" : "text-purple-800"}`}
+                />
               </button>
             </div>
           </li>

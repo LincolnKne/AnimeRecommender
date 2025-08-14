@@ -26,6 +26,7 @@ export default function HeaderSearch() {
   const [tags, setTags] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [queries, setQueries] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<{ sfw: string[]; nsfw: string[] }>({ sfw: [], nsfw: [] });
 
   const [searchResults, setSearchResults] = useState<SearchItem[]>([]);
   const [itemsById, setItemsById] = useState<Record<number, SearchItem>>({});
@@ -33,6 +34,13 @@ export default function HeaderSearch() {
   const [disliked, setDisliked] = useState<number[]>([]);
   const [recs, setRecs] = useState<ScoredAnime[]>([]);
   const [selectedAnime, setSelectedAnime] = useState<SearchItem | null>(null);
+  const recsPanelRef = useRef<HTMLDivElement | null>(null);
+
+  const [watched, setWatched] = useState<number[]>(() => {
+    // Load from localStorage on init
+    const stored = localStorage.getItem("watchedAnime");
+    return stored ? JSON.parse(stored) : [];
+  });
 
   const hasLists = liked.length > 0 || disliked.length > 0;
   useBodyScrollLock(open); // prevents two scrollbars
@@ -46,10 +54,63 @@ export default function HeaderSearch() {
     });
   };
 
+  // ---- Watched Anime List / Storage ----
+  useEffect(() => {
+    localStorage.setItem("watchedAnime", JSON.stringify(watched));
+  }, [watched]);
+
+  const markWatched = (id: number) => {
+    // Find the anime object in recs
+    const anime = recs.find(r => r.anime.id === id)?.anime;
+    if (anime) {
+      setItemsById(prev => ({ ...prev, [id]: anime }));
+    }
+
+    setWatched(prev => [...new Set([...prev, id])]);
+    setRecs(prev => prev.filter(r => r.anime.id !== id));
+  };
+
+  const unmarkWatched = (id: number) => {
+    setWatched(prev => prev.filter(x => x !== id));
+  };
+
+  // After watched is initialized
+  useEffect(() => {
+    if (watched.length > 0) {
+      Promise.all(watched.map(id => api.animeById(id)))
+        .then(animeList => {
+          setItemsById(prev => {
+            const next = { ...prev };
+            animeList.forEach(anime => {
+              next[anime.id] = anime;
+            });
+            return next;
+          });
+        })
+        .catch(() => {
+          // Optional: handle errors if needed
+        });
+    }
+  }, []); // Run once on mount
+
   // ---- Fetch tags on mount / nsfw toggle ----
   useEffect(() => {
-    api.tags(nsfwOk).then((d) => setTags(d.tags)).catch(() => setTags([]));
-  }, [nsfwOk]);
+    // Fetch both NSFW states once on mount
+    Promise.all([api.config(false), api.config(true)])
+      .then(([sfw, nsfw]) => {
+        setAllTags({ sfw: sfw.tags, nsfw: nsfw.tags });
+        setTags(nsfwOk ? nsfw.tags : sfw.tags);
+      })
+      .catch(() => {
+        setAllTags({ sfw: [], nsfw: [] });
+        setTags([]);
+      });
+  }, []); // only runs once on mount
+
+  useEffect(() => {
+    setTags(nsfwOk ? allTags.nsfw : allTags.sfw);
+  }, [nsfwOk, allTags]);
+
 
   // ---- Debounced search (search mode only) ----
   useEffect(() => {
@@ -146,13 +207,43 @@ export default function HeaderSearch() {
         disliked_ids: disliked,
         moods: selectedTags,
         nsfw_ok: nsfwOk,
-        exclude_ids: [],
+        exclude_ids: [...watched],
         limit: 20,
       };
       const data = await api.recommend(payload);
       setRecs(data);
       setPanel("recs");
       setOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendForMoreRecs = async () => {
+  if (recsPanelRef.current) {
+    var prevScrollTop = recsPanelRef.current.scrollTop;
+  }
+
+  setLoading(true);
+    try {
+      const payload = {
+        query: inputMode === "query" ? queries.join(" ") : undefined,
+        liked_ids: liked,
+        disliked_ids: disliked,
+        moods: selectedTags,
+        nsfw_ok: nsfwOk,
+        exclude_ids: [...watched, ...recs.map(r => r.anime.id)],
+        limit: 20,
+      };
+      const more = await api.recommendMore(payload);
+      setRecs(prev => [...prev, ...more]);
+
+      // Restore scroll position after the DOM updates
+      requestAnimationFrame(() => {
+        if (recsPanelRef.current) {
+          recsPanelRef.current.scrollTop = prevScrollTop;
+        }
+      });
     } finally {
       setLoading(false);
     }
@@ -185,7 +276,7 @@ export default function HeaderSearch() {
       </div>
 
       <div className="relative z-10 w-full max-w-4xl px-4 sm:w-[56vw] mt-[8vh] md:mt-[12vh] lg:mt-[16vh]">
-        <h1 className="text-center font-extrabold mb-8 text-[clamp(2.75rem,5vw,4.25rem)]">Anime Recommender</h1>
+        <h1 className="text-center font-extrabold mb-8 text-[clamp(2.75rem,5vw,4.25rem)] drop-shadow-[2px_2px_8px_rgba(0,0,0,0.85)]">Anime Recommender</h1>
 
         <div className="relative w-full">
           <div onClick={toggleFilters} className="absolute right-0 top-0 h-16 w-16 cursor-pointer z-30" />
@@ -200,7 +291,7 @@ export default function HeaderSearch() {
           />
 
           {open && (
-            <PanelContainer>
+            <PanelContainer ref={recsPanelRef}>
               {panel === "filters" && (
                 <FiltersPanel
                   tags={tags}
@@ -216,8 +307,10 @@ export default function HeaderSearch() {
                   results={searchResults}
                   liked={liked}
                   disliked={disliked}
+                  watched={watched} 
                   onLike={like}
                   onDislike={dislike}
+                  onMarkWatched={markWatched}
                   loading={loading}
                 />
               )}
@@ -228,17 +321,19 @@ export default function HeaderSearch() {
                   queries={queries}
                   liked={liked}
                   disliked={disliked}
+                  watched={watched}
                   itemsById={itemsById}
                   onRemoveQuery={removeQuery}
                   onRemoveLiked={removeFromLiked}
                   onRemoveDisliked={removeFromDisliked}
+                  onRemoveWatched={unmarkWatched}
                   onClear={() => { setLiked([]); setDisliked([]); setQueries([]); setSelectedTags([]); }}
                   onSend={sendForRecs}
                 />
               )}
 
               {panel === "recs" && (
-                <RecsPanel recs={recs} loading={loading} onOpenAnime={openAnime} />
+                <RecsPanel recs={recs} watched={watched} loading={loading} onOpenAnime={openAnime} onMore={sendForMoreRecs} onMarkWatched={markWatched}/>
               )}
             </PanelContainer>
           )}
@@ -247,3 +342,11 @@ export default function HeaderSearch() {
     </section>
   );
 }
+//TODO
+/*
+* ##Recommend More button
+* ##Already watched Anime section
+* ##Make tags pre-pull once with NFSW and handle switch for tags on the front end rather than recalling over and over
+* ##Fix issue with Null Titles
+* Implement ads 
+*/

@@ -23,6 +23,10 @@ export const api = {
     ),
   tags: (nsfwOk: boolean) =>
     getJSON<{ tags: string[] }>(`${BASE_URL}/api/tags?nsfw_ok=${nsfwOk ? "true" : "false"}`),
+  config: (nsfwOk: boolean) =>
+  getJSON<{ tags: string[]; total_entries: number; last_updated: string | null }>(
+    `${BASE_URL}/api/config?nsfw_ok=${nsfwOk ? "true" : "false"}`
+  ),
   animeById: (id: number) => getJSON<any>(`${BASE_URL}/api/anime/${id}`),
   recommend: (payload: {
     query?: string;
@@ -33,4 +37,13 @@ export const api = {
     exclude_ids: number[];
     limit: number;
   }) => postJSON<import("./types").ScoredAnime[]>(`${BASE_URL}/api/recommend`, payload),
+  recommendMore: (payload: {
+    query?: string;
+    liked_ids: number[];
+    disliked_ids: number[];
+    moods: string[];
+    nsfw_ok: boolean;
+    exclude_ids: number[];
+    limit: number;
+  }) => postJSON<import("./types").ScoredAnime[]>(`${BASE_URL}/api/recommend/more`, payload),
 };
