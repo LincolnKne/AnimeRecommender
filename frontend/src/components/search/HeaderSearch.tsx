@@ -367,6 +367,19 @@ export default function HeaderSearch() {
           )}
         </div>
       </div>
+      {/* Footer / GitHub issues link */}
+      <footer className="absolute bottom-2 w-full text-center text-xs text-white/70">
+        <a
+          href="https://github.com/LincolnKne/AnimeRecommender/issues"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-white"
+        >
+          Report an issue on GitHub
+        </a>
+      </footer>
     </section>
+
+    
   );
 }
