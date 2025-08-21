@@ -6,6 +6,7 @@ import SearchResultsPanel from "../dropdown/SearchResultsPanel";
 import ListsPanel from "../dropdown/ListsPanel";
 import RecsPanel from "../dropdown/RecsPanel";
 import AnimeDetailsModal from "./AnimeDetailsModal";
+import TutorialPopup from "./TutorialPopup";
 import { api } from "@/lib/api";
 import type { InputMode, PanelMode, ScoredAnime, SearchItem } from "@/lib/types";
 import { matchesQuery } from "@/lib/utils";
@@ -35,6 +36,17 @@ export default function HeaderSearch() {
   const [recs, setRecs] = useState<ScoredAnime[]>([]);
   const [selectedAnime, setSelectedAnime] = useState<SearchItem | null>(null);
   const recsPanelRef = useRef<HTMLDivElement | null>(null);
+
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  // Show on first visit
+  useEffect(() => {
+    const seen = localStorage.getItem("tutorial_seen");
+    if (!seen) {
+      setShowTutorial(true);
+      localStorage.setItem("tutorial_seen", "true");
+    }
+  }, []);
 
   const [watched, setWatched] = useState<number[]>(() => {
     // Load from localStorage on init
@@ -274,6 +286,21 @@ export default function HeaderSearch() {
           <span className="ml-3 text-sm font-medium text-white">NSFW</span>
         </label>
       </div>
+      
+      {/* Tutorial re-open button */}
+      <button
+        onClick={() => setShowTutorial(true)}
+        className="absolute top-6 left-6 z-30 
+                  bg-[#6b32a1] hover:bg-[#4A2574] 
+                  text-white text-sm font-medium 
+                  px-5 py-2 rounded-full 
+                  shadow-md transition-colors duration-200"
+      >
+        Tutorial
+      </button>
+
+      {/* Tutorial popup */}
+      {showTutorial && <TutorialPopup onClose={() => setShowTutorial(false)} />}
 
       <div className="relative z-10 w-full max-w-4xl px-4 sm:w-[56vw] mt-[8vh] md:mt-[12vh] lg:mt-[16vh]">
         <h1 className="text-center font-extrabold mb-8 text-[clamp(2.75rem,5vw,4.25rem)] drop-shadow-[2px_2px_8px_rgba(0,0,0,0.85)]">Anime Recommender</h1>
@@ -343,11 +370,3 @@ export default function HeaderSearch() {
     </section>
   );
 }
-//TODO
-/*
-* ##Recommend More button
-* ##Already watched Anime section
-* ##Make tags pre-pull once with NFSW and handle switch for tags on the front end rather than recalling over and over
-* ##Fix issue with Null Titles
-* Implement ads 
-*/
