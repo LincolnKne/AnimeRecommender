@@ -1,0 +1,8 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { Search as SearchIcon, ChevronDown } from "lucide-react";
+export default function SearchBar({ inputMode, text, onText, onToggleMode, onFocusSearch, onEnter, filtersOpen, }) {
+    return (_jsxs("div", { className: "relative z-20 flex items-stretch h-14 sm:h-16 rounded-full overflow-hidden\r\n                    bg-[#7338A0] text-white shadow-xl ring-1 ring-black/10\r\n                    focus-within:ring-2 focus-within:ring-[#7338A0]/60", children: [_jsx("button", { type: "button", onClick: onToggleMode, className: "px-5 text-sm font-semibold bg-[#7338A0] hover:bg-[#924DBF] transition rounded-l-full", title: inputMode === "search" ? "Switch to Query" : "Switch to Search", children: inputMode === "search" ? "Search" : "Query" }), _jsxs("div", { className: "relative flex-1 flex items-center", children: [_jsx(SearchIcon, { className: "pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/70" }), _jsx("input", { value: text, onChange: (e) => onText(e.target.value), onFocus: onFocusSearch, onKeyDown: (e) => { if (e.key === "Enter")
+                            onEnter(); }, type: "text", placeholder: inputMode === "search"
+                            ? "Search anime…"
+                            : "Describe what you want (moods, vibes, titles, etc.)…", className: "w-full h-full bg-transparent text-white placeholder-white/70 pl-12 pr-14 border-none outline-none ring-0" })] }), _jsx("div", { className: "px-4 flex items-center justify-center", children: _jsx(ChevronDown, { className: `h-5 w-5 transition ${filtersOpen ? "rotate-180" : ""}` }) })] }));
+}

@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+
+body {
+  @apply bg-regal-darker text-white antialiased;
+}
+
+.custom-gradient {
+  background: linear-gradient(
+    to top,
+    rgba(74, 37, 116, 1) 10%,
+    rgba(74, 37, 116, 0.9) 30%,
+    rgba(74, 37, 116, 0.6) 45%,
+    rgba(74, 37, 116, 0.1) 55%
+  );
+}

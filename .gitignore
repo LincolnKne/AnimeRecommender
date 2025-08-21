@@ -1,0 +1,11 @@
+# Ignore sensitive files
+.env
+tokens.json
+**/__pycache__/
+*.py[cod]
+backend/app/data/anime_data.json
+backend/app/data/anime_data_backup_*.json
+app/data/tokens.json
+data/anime_data.json
+data/anime_data_backup_*.json
+backend/app/data/
