@@ -42,11 +42,13 @@ export default function RecsPanel({
             />
             <div className="flex flex-col flex-1">
               <h3 className="font-semibold text-lg">{r.anime.title}</h3>
-              {r.anime.total_episodes !== undefined && (
-                <p className="text-sm text-gray-500">
-                  Episodes: {r.anime.total_episodes || "Unknown"}
-                </p>
-              )}
+
+              <div className="flex flex-wrap items-center gap-x-2 text-xs text-gray-500 min-w-0">
+                {r.anime.total_episodes ? <span>{r.anime.total_episodes} ep</span> : null}
+                {r.anime.all_titles && r.anime.all_titles.length > 0 && (
+                  <span className="truncate">{r.anime.all_titles.join(" • ")}</span>
+                )}
+              </div>
               <p className="text-sm text-gray-700 mt-1">
                 {truncate(r.anime.synopsis || "", synopsisLen)}
               </p>
