@@ -37,7 +37,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def load_anime_data():
     global _cache, _cache_timestamp
 
-        now = time.time()
+    now = time.time()
     if _cache is not None and (now - _cache_timestamp) < CACHE_TTL:
         return _cache
 
