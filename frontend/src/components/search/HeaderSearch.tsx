@@ -24,16 +24,21 @@ export default function HeaderSearch() {
   const [loading, setLoading] = useState(false);
 
   const [nsfwOk, setNsfwOk] = useState(false);
+  const debouncedNsfwOk = useDebouncedValue(nsfwOk, 300);
   const [tags, setTags] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [queries, setQueries] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<{ sfw: string[]; nsfw: string[] }>({ sfw: [], nsfw: [] });
 
+  // Cache for search results: key = query string, value = all results (before NSFW filtering)
+  const [searchResultsCache, setSearchResultsCache] = useState<Record<string, SearchItem[]>>({});
   const [searchResults, setSearchResults] = useState<SearchItem[]>([]);
   const [itemsById, setItemsById] = useState<Record<number, SearchItem>>({});
   const [liked, setLiked] = useState<number[]>([]);
   const [disliked, setDisliked] = useState<number[]>([]);
   const [recs, setRecs] = useState<ScoredAnime[]>([]);
+  // Cache for recommendation results: key = stringified payload, value = all results
+  const [recsCache, setRecsCache] = useState<Record<string, ScoredAnime[]>>({});
   const [selectedAnime, setSelectedAnime] = useState<SearchItem | null>(null);
   const recsPanelRef = useRef<HTMLDivElement | null>(null);
 
@@ -120,8 +125,8 @@ export default function HeaderSearch() {
   }, []); // only runs once on mount
 
   useEffect(() => {
-    setTags(nsfwOk ? allTags.nsfw : allTags.sfw);
-  }, [nsfwOk, allTags]);
+    setTags(debouncedNsfwOk ? allTags.nsfw : allTags.sfw);
+  }, [debouncedNsfwOk, allTags]);
 
 
   // ---- Debounced search (search mode only) ----
@@ -131,9 +136,30 @@ export default function HeaderSearch() {
       setSearchResults([]);
       return;
     }
+
+    // Check if we have cached results for this query
+    const cacheKey = debouncedText.trim();
+    if (searchResultsCache[cacheKey]) {
+      // Use cached results and filter by liked/disliked
+      const filtered = searchResultsCache[cacheKey].filter(
+        a => !liked.includes(a.id) && !disliked.includes(a.id)
+      );
+      setSearchResults(filtered);
+      indexItems(filtered);
+      setPanel("search");
+      setOpen(true);
+      return;
+    }
+
+    // No cache, fetch from API
     setLoading(true);
-    api.search(debouncedText, 20, nsfwOk)
+    api.search(debouncedText, 20, debouncedNsfwOk)
       .then((data) => {
+        // Store all results in cache for future NSFW toggles
+        setSearchResultsCache(prev => ({
+          ...prev,
+          [cacheKey]: data
+        }));
         const filtered = data.filter(a => !liked.includes(a.id) && !disliked.includes(a.id));
         setSearchResults(filtered);
         indexItems(filtered);
@@ -142,7 +168,7 @@ export default function HeaderSearch() {
       })
       .catch(() => setSearchResults([]))
       .finally(() => setLoading(false));
-  }, [debouncedText, inputMode, liked, disliked, nsfwOk]);
+  }, [debouncedText, inputMode, liked, disliked, searchResultsCache]);
 
   // ---- Panel rules based on lists presence ----
   useEffect(() => {
@@ -222,7 +248,27 @@ export default function HeaderSearch() {
         exclude_ids: [...watched],
         limit: 20,
       };
+      const cacheKey = JSON.stringify({
+        query: payload.query,
+        liked_ids: payload.liked_ids,
+        disliked_ids: payload.disliked_ids,
+        moods: payload.moods,
+        exclude_ids: payload.exclude_ids,
+      });
+
+      // Check if we have cached results for this configuration
+      if (recsCache[cacheKey]) {
+        setRecs(recsCache[cacheKey]);
+        setPanel("recs");
+        setOpen(true);
+        return;
+      }
+
       const data = await api.recommend(payload);
+      setRecsCache(prev => ({
+        ...prev,
+        [cacheKey]: data
+      }));
       setRecs(data);
       setPanel("recs");
       setOpen(true);
@@ -247,7 +293,31 @@ export default function HeaderSearch() {
         exclude_ids: [...watched, ...recs.map(r => r.anime.id)],
         limit: 20,
       };
+      const cacheKey = JSON.stringify({
+        query: payload.query,
+        liked_ids: payload.liked_ids,
+        disliked_ids: payload.disliked_ids,
+        moods: payload.moods,
+        exclude_ids: payload.exclude_ids,
+      });
+
+      // Check if we have cached results for this configuration
+      if (recsCache[cacheKey]) {
+        setRecs(prev => [...prev, ...recsCache[cacheKey]]);
+        // Restore scroll position after the DOM updates
+        requestAnimationFrame(() => {
+          if (recsPanelRef.current) {
+            recsPanelRef.current.scrollTop = prevScrollTop;
+          }
+        });
+        return;
+      }
+
       const more = await api.recommendMore(payload);
+      setRecsCache(prev => ({
+        ...prev,
+        [cacheKey]: more
+      }));
       setRecs(prev => [...prev, ...more]);
 
       // Restore scroll position after the DOM updates

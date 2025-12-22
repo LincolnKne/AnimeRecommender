@@ -1,5 +1,6 @@
 import os
 from typing import List, Dict, Any
+import time
 import psycopg
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
@@ -9,6 +10,9 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 EMBED_DIM = int(os.getenv("EMBED_DIM", "1536"))
+_cache: List[Dict[str, Any]] | None = None
+_cache_timestamp: float = 0
+CACHE_TTL = 300  # 5 minutes
 
 pool = ConnectionPool(conninfo=DATABASE_URL, kwargs={"row_factory": dict_row}, min_size=1, max_size=5)
 
@@ -31,6 +35,12 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def load_anime_data():
+    global _cache, _cache_timestamp
+
+        now = time.time()
+    if _cache is not None and (now - _cache_timestamp) < CACHE_TTL:
+        return _cache
+
     with psycopg.connect(DATABASE_URL, row_factory=dict_row) as conn:
         rows = conn.execute("""
             SELECT id, title, all_titles, main_picture, tags, synopsis,
@@ -73,6 +83,10 @@ def load_anime_data():
             "children_ids": ensure_list(row.get("children_ids")),
             "last_updated": row.get("last_updated"),
         })
+
+    _cache = data
+    _cache_timestamp = now
+    return _cache
     return data
 
 def get_by_ids(ids: List[int]) -> List[Dict[str, Any]]:
